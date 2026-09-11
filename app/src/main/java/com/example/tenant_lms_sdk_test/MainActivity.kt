@@ -89,16 +89,29 @@ fun HarnessScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    var tenantId by rememberSaveable { mutableStateOf(TestSdkConfig.TENANT_ID) }
-    var clientKey by rememberSaveable { mutableStateOf(TestSdkConfig.CLIENT_KEY) }
-    var name by rememberSaveable { mutableStateOf(TestSdkConfig.STUDENT_NAME) }
-    var mobileNo by rememberSaveable { mutableStateOf(TestSdkConfig.STUDENT_MOBILE_NO) }
-    var username by rememberSaveable { mutableStateOf(TestSdkConfig.STUDENT_USERNAME) }
-    var gradeCode by rememberSaveable { mutableStateOf(TestSdkConfig.STUDENT_GRADE_CODE) }
-    var credentialsExpanded by rememberSaveable { mutableStateOf(false) }
-    var baseUrl by rememberSaveable { mutableStateOf(TestSdkConfig.BASE_URL_DEV) }
+    val credentialsStore = remember { CredentialsStore(context) }
+    val saved = remember { credentialsStore.load() }
 
-    fun currentConfig() = LmsSdkConfig(
+    var tenantId by rememberSaveable { mutableStateOf(saved.tenantId) }
+    var clientKey by rememberSaveable { mutableStateOf(saved.clientKey) }
+    var name by rememberSaveable { mutableStateOf(saved.name) }
+    var mobileNo by rememberSaveable { mutableStateOf(saved.mobileNo) }
+    var username by rememberSaveable { mutableStateOf(saved.username) }
+    var gradeCode by rememberSaveable { mutableStateOf(saved.gradeCode) }
+    var baseUrl by rememberSaveable { mutableStateOf(saved.baseUrl) }
+    var credentialsExpanded by rememberSaveable { mutableStateOf(true) }
+
+    fun currentCredentials() = SdkCredentials(
+        tenantId = tenantId.trim(),
+        clientKey = clientKey.trim(),
+        baseUrl = baseUrl.trim(),
+        name = name.trim(),
+        mobileNo = mobileNo.trim(),
+        username = username.trim(),
+        gradeCode = gradeCode.trim()
+    )
+
+    fun buildConfig() = LmsSdkConfig(
         tenantDetail = TenantDetail(
             tenantId = tenantId.trim(),
             clientKey = clientKey.trim(),
@@ -111,6 +124,13 @@ fun HarnessScreen(modifier: Modifier = Modifier) {
             gradeCode = gradeCode.trim()
         )
     )
+
+    // Persist on launch rather than on every keystroke: one write per run, and the values that
+    // get saved are exactly the ones the SDK was handed.
+    fun currentConfig(): LmsSdkConfig {
+        credentialsStore.save(currentCredentials())
+        return buildConfig()
+    }
 
     val store = remember { ChecklistStore(context) }
     val verdicts = remember { mutableStateMapOf<String, TestVerdict>().apply { putAll(store.load()) } }
@@ -135,42 +155,67 @@ fun HarnessScreen(modifier: Modifier = Modifier) {
         item {
             SectionCard("Credentials") {
                 Text(
-                    if (credentialsExpanded) "Editing overrides TestSdkConfig for this run."
-                    else "Using TestSdkConfig defaults — tenant ${clientKey}, student ${username}.",
+                    "Every field the host app passes to LmsSdk.configure(). Edits are saved on " +
+                        "launch and restored next start.",
                     style = MaterialTheme.typography.bodySmall
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { baseUrl = TestSdkConfig.BASE_URL_DEV }) {
+                    OutlinedButton(onClick = {
+                        tenantId = TestSdkConfig.TENANT_ID_DEV
+                        baseUrl = TestSdkConfig.BASE_URL_DEV
+                    }) {
                         Text(if (baseUrl == TestSdkConfig.BASE_URL_DEV) "● Dev" else "Dev")
                     }
-                    OutlinedButton(onClick = { baseUrl = TestSdkConfig.BASE_URL_LIVE }) {
+                    OutlinedButton(onClick = {
+                        tenantId = TestSdkConfig.TENANT_ID_LIVE
+                        baseUrl = TestSdkConfig.BASE_URL_LIVE
+                    }) {
                         Text(if (baseUrl == TestSdkConfig.BASE_URL_LIVE) "● Live" else "Live")
                     }
+                    TextButton(onClick = { credentialsExpanded = !credentialsExpanded }) {
+                        Text(if (credentialsExpanded) "Hide" else "Edit")
+                    }
                 }
+                val knownEnv = baseUrl == TestSdkConfig.BASE_URL_DEV ||
+                    baseUrl == TestSdkConfig.BASE_URL_LIVE
+                val envMismatch = (baseUrl == TestSdkConfig.BASE_URL_DEV &&
+                    tenantId != TestSdkConfig.TENANT_ID_DEV) ||
+                    (baseUrl == TestSdkConfig.BASE_URL_LIVE &&
+                        tenantId != TestSdkConfig.TENANT_ID_LIVE)
                 Text(
-                    "Environment: $baseUrl",
+                    when {
+                        envMismatch ->
+                            "⚠ This tenant does not belong to $baseUrl — expect 404 Tenant not found"
+                        !knownEnv -> "Custom host: $baseUrl"
+                        else -> "Environment: $baseUrl"
+                    },
                     style = MaterialTheme.typography.bodySmall
                 )
-                TextButton(onClick = { credentialsExpanded = !credentialsExpanded }) {
-                    Text(if (credentialsExpanded) "Hide fields" else "Edit fields")
-                }
                 if (credentialsExpanded) {
-                    Field("Tenant ID", tenantId) { tenantId = it }
+                    Field("Tenant ID (UUID)", tenantId) { tenantId = it }
                     Field("Client key (ems_id)", clientKey) { clientKey = it }
                     Field("API base URL", baseUrl) { baseUrl = it }
                     Field("Student name", name) { name = it }
                     Field("Mobile number", mobileNo, KeyboardType.Phone) { mobileNo = it }
                     Field("Username", username) { username = it }
                     Field("Grade code", gradeCode) { gradeCode = it }
-                    OutlinedButton(onClick = {
-                        tenantId = TestSdkConfig.TENANT_ID
-                        clientKey = TestSdkConfig.CLIENT_KEY
-                        name = TestSdkConfig.STUDENT_NAME
-                        mobileNo = TestSdkConfig.STUDENT_MOBILE_NO
-                        username = TestSdkConfig.STUDENT_USERNAME
-                        gradeCode = TestSdkConfig.STUDENT_GRADE_CODE
-                        baseUrl = TestSdkConfig.BASE_URL_DEV
-                    }) { Text("Reset to TestSdkConfig") }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = {
+                            credentialsStore.save(currentCredentials())
+                            Toast.makeText(context, "Credentials saved", Toast.LENGTH_SHORT).show()
+                        }) { Text("Save") }
+                        OutlinedButton(onClick = {
+                            credentialsStore.clear()
+                            val d = SdkCredentials.DEFAULT
+                            tenantId = d.tenantId
+                            clientKey = d.clientKey
+                            baseUrl = d.baseUrl
+                            name = d.name
+                            mobileNo = d.mobileNo
+                            username = d.username
+                            gradeCode = d.gradeCode
+                        }) { Text("Reset to TestSdkConfig") }
+                    }
                 }
             }
         }
@@ -220,7 +265,7 @@ fun HarnessScreen(modifier: Modifier = Modifier) {
                 ) {
                     LmsSdk.configure(
                         currentConfig().copy(
-                            studentDetail = currentConfig().studentDetail.copy(mobileNo = "0000000000")
+                            studentDetail = buildConfig().studentDetail.copy(mobileNo = "0000000000")
                         )
                     )
                     LmsSdkActivity.launch(context)

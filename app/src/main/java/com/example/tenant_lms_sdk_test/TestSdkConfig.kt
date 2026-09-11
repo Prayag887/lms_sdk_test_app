@@ -1,15 +1,19 @@
 package com.example.tenant_lms_sdk_test
 
 /**
- * Fixed credentials this harness tests against.
+ * Credentials this harness tests against.
  *
- * These belong to the **dev** environment: the tenant resolves on
- * https://lms-api.eynorix.xyz and returns 404 "Tenant not found" on the live host. The SDK
- * otherwise derives its host from CLIENT_KEY via the bundled brand table, which points at live,
- * so BASE_URL has to be passed explicitly in TenantDetail.
+ * Tenant UUID and API host must match: each tenant exists in exactly one environment, and a
+ * mismatch fails every call with 404 "Tenant not found". The Dev/Live switch on the harness
+ * screen sets both together — don't set one without the other.
+ *
+ * The SDK otherwise derives its host from CLIENT_KEY via the bundled brand table (which points
+ * at live), so the host is passed explicitly as TenantDetail.baseUrl.
+ *
+ * Verified 2026-09-11: sdk-login succeeds only on DEV (tenant 2fbfd06d on lms-api.eynorix.xyz).
+ * The live host returned HTTP 500 for both tenants.
  */
 object TestSdkConfig {
-    const val TENANT_ID = "ac918c76-fe74-419b-b7e9-15e7603f558c"
     const val CLIENT_KEY = "eynorix"
 
     const val STUDENT_NAME = "Test User"
@@ -17,9 +21,15 @@ object TestSdkConfig {
     const val STUDENT_USERNAME = "sujan_check"
     const val STUDENT_GRADE_CODE = "class8"
 
-    /** Dev API host these credentials live on. */
+    /** Dev tenant — the one the student above belongs to. */
+    const val TENANT_ID_DEV = "2fbfd06d-dbdb-41d3-bcb9-3914fd64308d"
     const val BASE_URL_DEV = "https://lms-api.eynorix.xyz"
 
-    /** Live API host, for comparison runs (the credentials above do NOT exist there). */
+    /** Live tenant. */
+    const val TENANT_ID_LIVE = "ac918c76-fe74-419b-b7e9-15e7603f558c"
     const val BASE_URL_LIVE = "https://lms-api.eynorix.com"
+
+    /** Environment the harness starts in — dev, the only working combination. */
+    const val TENANT_ID = TENANT_ID_DEV
+    const val BASE_URL = BASE_URL_DEV
 }
