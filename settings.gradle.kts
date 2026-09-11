@@ -17,6 +17,16 @@ plugins {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        // Local publishes of the SDK, for testing a change before it goes to the registry:
+        //   ./gradlew :shared:publishAndroidReleasePublicationToMavenLocal \
+        //             :lms-sdk:publishAndroidReleasePublicationToMavenLocal
+        // Listed first so a local build of a given version wins over the registry's copy.
+        mavenLocal {
+            content {
+                includeGroup("com.dn")
+                includeGroup("com.dn.thirdparty")
+            }
+        }
         // Eynora LMS SDK artifacts (com.dn:lms-sdk, com.dn:shared), published as AARs to the
         // GitLab Maven registry of eynorix/eynorix-mobile-app (project 4).
         // Requires gitlabToken (PAT/project token with read_api) in ~/.gradle/gradle.properties.
