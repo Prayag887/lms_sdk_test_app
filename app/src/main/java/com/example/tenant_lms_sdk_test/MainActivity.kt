@@ -438,5 +438,5 @@ private object DemoUiProvider : LmsUiProvider {
 }
 
 private object BuildConfigInfo {
-    const val SDK_VERSION = "1.0.6"
+    val SDK_VERSION: String = BuildConfig.LMS_SDK_VERSION
 }

@@ -18,6 +18,10 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Single source of truth for the SDK version shown in the harness UI: the version
+        // catalog entry that actually resolves the dependency.
+        buildConfigField("String", "LMS_SDK_VERSION", "\"${libs.versions.lmsSdk.get()}\"")
     }
 
     buildTypes {
@@ -27,6 +31,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
@@ -37,6 +42,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {
