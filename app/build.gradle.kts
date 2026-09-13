@@ -25,8 +25,18 @@ android {
     }
 
     buildTypes {
+        debug {
+            // The SDK drags in React Native + WebRTC, so every extra ABI costs ~25-43 MB of
+            // .so files. Keep arm64-v8a (real devices) and x86_64 (emulator) only; x86 and
+            // armeabi-v7a were adding ~65 MB that nothing here runs on.
+            ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            // 64-bit ARM only. A real tenant app should publish an App Bundle (or configure
+            // splits) so Play serves one ABI per device instead of filtering at build time.
+            ndk { abiFilters += listOf("arm64-v8a") }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -76,4 +86,21 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+}
+
+// Dependency AARs always resolve to their RELEASE variant, even when this app builds debug.
+// React Native (via org.convay.react:convay-meet-sdk) publishes both a debug and a release
+// variant, and Gradle's variant matching picks debug for a debug build: react-android's debug
+// AAR is 203 MB against 127 MB for release (hermes-android: 94.7 MB vs 63.9 MB), and it carries
+// dev-only assertions and unstripped natives that also slow startup. Only the two classpaths
+// that feed the APK are forced, so unit/instrumentation test classpaths keep normal matching.
+afterEvaluate {
+    listOf("debugCompileClasspath", "debugRuntimeClasspath").forEach { name ->
+        configurations.findByName(name)?.attributes {
+            attribute(
+                com.android.build.api.attributes.BuildTypeAttr.ATTRIBUTE,
+                objects.named(com.android.build.api.attributes.BuildTypeAttr::class.java, "release")
+            )
+        }
+    }
 }

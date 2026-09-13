@@ -303,6 +303,8 @@ private fun LoginStateCard(state: SdkLoginState, onRetry: () -> Unit) {
     val (label, detail) = when (state) {
         is SdkLoginState.Idle -> "Idle" to "SDK not launched yet in this process."
         is SdkLoginState.NotAttempted -> "Not attempted" to "No mobile number was supplied."
+        is SdkLoginState.InProgress ->
+            "In progress" to "Headless tenant-validation/device/sdk-login is running."
         is SdkLoginState.Success -> "Success" to "Headless sdk-login completed."
         is SdkLoginState.Failed -> "Failed" to state.message
     }
