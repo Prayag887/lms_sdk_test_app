@@ -14,19 +14,19 @@ package com.example.tenant_lms_sdk_test
  * The live host returned HTTP 500 for both tenants.
  */
 object TestSdkConfig {
-    const val CLIENT_KEY = "eynorix"
+    const val CLIENT_KEY = "DIGITAL NEPAL"
 
-    const val STUDENT_NAME = "Test User"
-    const val STUDENT_MOBILE_NO = "9808092396"
-    const val STUDENT_USERNAME = "sujan_check"
-    const val STUDENT_GRADE_CODE = "class8"
+    const val STUDENT_NAME = "Maksud Ali"
+    const val STUDENT_MOBILE_NO = "9860471581"
+    const val STUDENT_USERNAME = "Maksud-Ali"
+    const val STUDENT_GRADE_CODE = "NWB11MGMT"
 
     /** Dev tenant — the one the student above belongs to. */
     const val TENANT_ID_DEV = "2fbfd06d-dbdb-41d3-bcb9-3914fd64308d"
     const val BASE_URL_DEV = "https://lms-api.eynorix.xyz"
 
     /** Live tenant. */
-    const val TENANT_ID_LIVE = "ac918c76-fe74-419b-b7e9-15e7603f558c"
+    const val TENANT_ID_LIVE = "c008244c-259c-4a21-8d7a-3e953bd193b5"
     const val BASE_URL_LIVE = "https://lms-api.eynorix.com"
 
     /** Environment the harness starts in — dev, the only working combination. */
